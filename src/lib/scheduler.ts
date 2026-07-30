@@ -327,7 +327,90 @@ export function parseDay(s: string): Day {
   return d;
 }
 
+const DAY_WORDS = "lunes|martes|mi[eé]rcoles|jueves|viernes";
+const TYPE_WORDS = /(TEOR[ÍI]A|LABORATORIO|LABORATORIOS|LAB|AYUDANT[ÍI]A|PR[ÁA]CTICA|TALLER|C[ÁA]TEDRA)/gi;
+
+// Detects the university copy/paste format:
+// "INFB8080 - REDES Y COMUNICACION DE DATOS302TEORIANOMBRE PROFESOR" + líneas de horario
+function isUniversityFormat(text: string): boolean {
+  return !text.includes("|") && new RegExp(`(${DAY_WORDS})\\s*\\d{1,2}:\\d{2}`, "i").test(text);
+}
+
+export function parseUniversityImport(text: string): Subject[] {
+  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  const headerRe = /^([A-Za-zÁÉÍÓÚÑ]{2,}\d[\w-]*)\s*-\s*(.+)$/;
+
+  // Group lines into entries; a new entry starts at a header line.
+  const entries: string[][] = [];
+  for (const line of lines) {
+    if (!line) continue;
+    if (headerRe.test(line)) entries.push([line]);
+    else if (entries.length > 0) entries[entries.length - 1].push(line);
+  }
+  if (entries.length === 0) throw new Error("No se detectó ninguna asignatura en el texto pegado.");
+
+  const subjectsMap = new Map<string, Subject>();
+
+  for (const entry of entries) {
+    const whole = entry.join("\n");
+    const dayRe = new RegExp(`(${DAY_WORDS})`, "i");
+    const idx = whole.search(dayRe);
+    const headPart = (idx >= 0 ? whole.slice(0, idx) : whole).replace(/\n/g, " ").trim();
+    const schedulePart = idx >= 0 ? whole.slice(idx) : "";
+
+    const hm = headPart.match(headerRe);
+    if (!hm) continue;
+    const code = hm[1].toUpperCase();
+    let rest = hm[2];
+
+    // name + section number + type + professor
+    const nm = rest.match(/^(.*?)(\d{2,5})(.*)$/);
+    let name = rest.trim();
+    let sectionLabel = "1";
+    let professor = "";
+    if (nm) {
+      name = nm[1].trim();
+      sectionLabel = nm[2];
+      professor = nm[3];
+    }
+    // strip "TEORIA" and similar type words
+    name = name.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+    professor = professor.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+
+    // schedule: day followed by one or more HH:MM - HH:MM separated by "/"
+    const rawBlocks: Block[] = [];
+    const chunkRe = new RegExp(`(${DAY_WORDS})([^a-zA-ZÁÉÍÓÚÑáéíóú]*)`, "gi");
+    let m: RegExpExecArray | null;
+    while ((m = chunkRe.exec(schedulePart))) {
+      const day = parseDay(m[1]);
+      const times = m[2].matchAll(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/g);
+      for (const t of times) {
+        rawBlocks.push({ day, start: toMinutes(t[1]), end: toMinutes(t[2]) });
+      }
+    }
+    if (rawBlocks.length === 0) continue;
+
+    const key = `${name}::${code}`;
+    let subj = subjectsMap.get(key);
+    if (!subj) {
+      subj = { id: cryptoId(), name: name || code, code, sections: [] };
+      subjectsMap.set(key, subj);
+    }
+    subj.sections.push({
+      id: cryptoId(),
+      label: sectionLabel,
+      professor: professor || undefined,
+      blocks: normalizeBlocks(rawBlocks),
+    });
+  }
+
+  if (subjectsMap.size === 0) throw new Error("No se pudieron leer secciones válidas del texto.");
+  return Array.from(subjectsMap.values());
+}
+
 export function parseImport(text: string): Subject[] {
+  if (isUniversityFormat(text)) return parseUniversityImport(text);
+
   const subjectsMap = new Map<string, Subject>();
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   for (const line of lines) {
