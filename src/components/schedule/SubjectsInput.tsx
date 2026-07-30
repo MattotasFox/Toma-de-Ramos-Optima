@@ -78,7 +78,8 @@ export function SubjectsInput({ subjects, onChange }: Props) {
       </TabsContent>
       <TabsContent value="import" className="space-y-3 mt-4">
         <p className="text-sm text-muted-foreground">
-          Una línea por sección. Formato:{" "}
+          Pega el texto tal cual desde el sistema de tu universidad (se detecta automáticamente y
+          se elimina "TEORIA"), o usa el formato con barras:{" "}
           <code className="text-xs bg-muted px-1 py-0.5 rounded">
             Nombre | Código | Sección | Profesor | Día HH:MM-HH:MM; Día HH:MM-HH:MM
           </code>
@@ -87,9 +88,10 @@ export function SubjectsInput({ subjects, onChange }: Props) {
           value={importText}
           onChange={(e) => setImportText(e.target.value)}
           rows={8}
-          placeholder={`Cálculo | MAT101 | S1 | Prof. Pérez | Lunes 08:00-11:10; Miércoles 09:40-11:10\nCálculo | MAT101 | S2 |  | Martes 09:40-12:50\nMetodología | MET202 | A | Prof. Díaz | Jueves 14:00-16:20`}
+          placeholder={`INFB8080 - REDES Y COMUNICACION DE DATOS302TEORIACRISTIAN ANDRES RODRIGUEZ CORNEJOmartes 9:40 - 10:25 / 10:25 - 11:10 /\njueves 9:40 - 10:25 / 10:25 - 11:10 /\nviernes 9:40 - 10:25 / 10:25 - 11:10 /`}
           className="font-mono text-sm"
         />
+
         <Button onClick={handleImport} disabled={!importText.trim()}>
           Importar
         </Button>
