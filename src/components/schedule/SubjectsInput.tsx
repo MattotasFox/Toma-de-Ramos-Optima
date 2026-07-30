@@ -20,6 +20,8 @@ import {
   toMinutes,
   fromMinutes,
   normalizeBlocks,
+  safeNormalizeBlocks,
+  invalidBlockIndexes,
   parseImport,
 } from "@/lib/scheduler";
 
@@ -184,6 +186,7 @@ function SectionEditor({
       blocks: section.blocks.map((b, i) => (i === idx ? { ...b, ...patch } : b)),
     });
   };
+  const invalidBlocks = invalidBlockIndexes(section.blocks);
   const fuseBlocks = () => {
     try {
       onUpdate({ blocks: normalizeBlocks(section.blocks) });
@@ -223,6 +226,7 @@ function SectionEditor({
           <BlockRow
             key={i}
             block={b}
+            invalid={invalidBlocks.includes(i)}
             onUpdate={(patch) => updateBlock(i, patch)}
             onRemove={() => removeBlock(i)}
           />
@@ -237,9 +241,14 @@ function SectionEditor({
             </Button>
           )}
         </div>
+        {invalidBlocks.length > 0 && (
+          <p className="text-xs text-destructive pt-1">
+            Revisa los bloques marcados: la hora de término debe ser posterior a la de inicio.
+          </p>
+        )}
         {section.blocks.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">
-            {normalizeBlocks(section.blocks).map((b, i) => (
+            {safeNormalizeBlocks(section.blocks).map((b, i) => (
               <Badge key={i} variant="secondary" className="text-xs">
                 {DAY_NAMES[b.day]} {fromMinutes(b.start)}–{fromMinutes(b.end)}
               </Badge>
@@ -253,10 +262,12 @@ function SectionEditor({
 
 function BlockRow({
   block,
+  invalid,
   onUpdate,
   onRemove,
 }: {
   block: Block;
+  invalid?: boolean;
   onUpdate: (patch: Partial<Block>) => void;
   onRemove: () => void;
 }) {
@@ -273,7 +284,13 @@ function BlockRow({
   };
 
   return (
-    <div className="flex gap-1 items-center">
+    <div
+      className={
+        invalid
+          ? "flex gap-1 items-center rounded-md ring-1 ring-destructive/60 px-1"
+          : "flex gap-1 items-center"
+      }
+    >
       <Select value={String(block.day)} onValueChange={(v) => onUpdate({ day: Number(v) as Day })}>
         <SelectTrigger className="w-32">
           <SelectValue />

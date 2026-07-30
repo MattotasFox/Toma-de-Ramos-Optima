@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,15 +53,18 @@ function Index() {
   const [saved, setSaved] = useState<SavedSchedule[]>([]);
   const [compareMode, setCompareMode] = useState(false);
 
-  const result = useMemo(() => {
-    if (subjects.length === 0) return null;
+  const { result, solveError } = useMemo(() => {
+    if (subjects.length === 0) return { result: null, solveError: null as string | null };
     try {
-      return solve(subjects, rules, 3);
+      return { result: solve(subjects, rules, 3), solveError: null as string | null };
     } catch (e) {
-      toast.error((e as Error).message);
-      return null;
+      return { result: null, solveError: (e as Error).message };
     }
   }, [subjects, rules]);
+
+  useEffect(() => {
+    if (solveError) toast.error(solveError);
+  }, [solveError]);
 
   const canSolve = subjects.length > 0 && subjects.every((s) => s.sections.length > 0);
 
