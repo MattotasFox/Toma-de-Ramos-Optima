@@ -61,6 +61,19 @@ export function fromMinutes(min: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+// Render-safe variant: ignores invalid blocks instead of throwing.
+export function safeNormalizeBlocks(blocks: Block[]): Block[] {
+  try {
+    return normalizeBlocks(blocks.filter((b) => b.end > b.start));
+  } catch {
+    return [];
+  }
+}
+
+export function invalidBlockIndexes(blocks: Block[]): number[] {
+  return blocks.map((b, i) => (b.end > b.start ? -1 : i)).filter((i) => i >= 0);
+}
+
 // Merge contiguous sub-blocks (same day, with gap <= 10 min).
 export function normalizeBlocks(blocks: Block[]): Block[] {
   const byDay = new Map<Day, Block[]>();
