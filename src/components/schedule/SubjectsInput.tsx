@@ -159,9 +159,44 @@ function SubjectCard({
             onUpdate={(patch) => updateSection(sec.id, patch)}
           />
         ))}
-        <Button variant="ghost" size="sm" onClick={addSection}>
-          <Plus className="mr-1 size-3" /> Agregar sección
-        </Button>
+        <div className="flex flex-wrap gap-2 items-center">
+          <Button variant="ghost" size="sm" onClick={addSection}>
+            <Plus className="mr-1 size-3" /> Agregar sección
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setShowImport((v) => !v)}>
+            <Upload className="mr-1 size-3" /> Importar sección
+          </Button>
+        </div>
+        {showImport && (
+          <div className="space-y-2 rounded-md bg-muted/40 p-3">
+            <p className="text-xs text-muted-foreground">
+              Pega el texto de la sección tal cual (se elimina "TEORIA"):{" "}
+              <code className="text-xs">301TEORIANOMBRE PROFESORmartes 8:00 - 8:45 / ...</code>
+            </p>
+            <Textarea
+              value={sectionText}
+              onChange={(e) => setSectionText(e.target.value)}
+              rows={4}
+              className="font-mono text-sm"
+              placeholder={`301TEORIACRISTIAN ANDRES RODRIGUEZ CORNEJOmartes 8:00 - 8:45 / 8:45 - 9:30 /\njueves 8:00 - 8:45 / 8:45 - 9:30 /`}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onClick={importSection} disabled={!sectionText.trim()}>
+                Importar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowImport(false);
+                  setSectionText("");
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );
