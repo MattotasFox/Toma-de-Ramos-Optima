@@ -59,7 +59,7 @@ export function ScheduleGrid({ subjects, combination }: Props) {
       for (const b of dayBlocks) if (b.start < times[0]) addMsg(b, msg);
     } else if (/^T[eé]rmino/i.test(v.rule) && times.length >= 1) {
       for (const b of dayBlocks) if (b.end > times[0]) addMsg(b, msg);
-    } else if (/^Almuerzo/i.test(v.rule) && times.length >= 3) {
+    } else if (/^Almuerzo/i.test(v.rule) && times.length >= 2) {
       // times[0] is the duration's minutes value pattern-free; window = last two times
       const wStart = times[times.length - 2];
       const wEnd = times[times.length - 1];
