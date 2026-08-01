@@ -109,6 +109,21 @@ function SubjectCard({
   onRemove: () => void;
   onUpdate: (patch: Partial<Subject>) => void;
 }) {
+  const [showImport, setShowImport] = useState(false);
+  const [sectionText, setSectionText] = useState("");
+
+  const importSection = () => {
+    try {
+      const sec = parseSectionImport(sectionText);
+      onUpdate({ sections: [...subject.sections, sec] });
+      setSectionText("");
+      setShowImport(false);
+      toast.success(`Sección ${sec.label} agregada.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   const addSection = () => {
     onUpdate({
       sections: [
