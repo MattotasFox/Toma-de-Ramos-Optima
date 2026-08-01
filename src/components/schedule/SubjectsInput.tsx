@@ -23,6 +23,7 @@ import {
   safeNormalizeBlocks,
   invalidBlockIndexes,
   parseImport,
+  parseSectionImport,
 } from "@/lib/scheduler";
 
 type Props = {
