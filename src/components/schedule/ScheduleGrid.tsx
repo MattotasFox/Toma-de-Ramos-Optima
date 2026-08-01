@@ -6,6 +6,17 @@ type Props = {
   combination: Combination;
 };
 
+// Bloques oficiales de la universidad: 90 min de clase + 10 min de receso.
+const BLOCK_LENGTH = 90;
+const BLOCK_BREAK = 10;
+const FIRST_BLOCK_START = 8 * 60; // 08:00
+const TOTAL_BLOCKS = 8; // 08:00 → 21:10
+
+const UNIVERSITY_BLOCKS = Array.from({ length: TOTAL_BLOCKS }, (_, i) => {
+  const start = FIRST_BLOCK_START + i * (BLOCK_LENGTH + BLOCK_BREAK);
+  return { index: i + 1, start, end: start + BLOCK_LENGTH };
+});
+
 // Build the timeline range from all blocks in the combination.
 export function ScheduleGrid({ subjects, combination }: Props) {
   const picked = combination.choices.map((c) => {
@@ -21,10 +32,8 @@ export function ScheduleGrid({ subjects, combination }: Props) {
 
   const minStart = Math.min(...allBlocks.map((b) => b.start));
   const maxEnd = Math.max(...allBlocks.map((b) => b.end));
-  const rowStart = Math.floor(minStart / 45) * 45;
-  const rowEnd = Math.ceil(maxEnd / 45) * 45;
-  const slots: number[] = [];
-  for (let t = rowStart; t < rowEnd; t += 45) slots.push(t);
+  const slots = UNIVERSITY_BLOCKS.filter((s) => s.end > minStart && s.start < maxEnd);
+
 
   // Violation days: build set from violation detail hints
   const violationDetails = new Map<string, string>();
@@ -42,7 +51,7 @@ export function ScheduleGrid({ subjects, combination }: Props) {
       <div className="overflow-x-auto">
         <div
           className="grid gap-1 min-w-[720px]"
-          style={{ gridTemplateColumns: "80px repeat(5, 1fr)" }}
+          style={{ gridTemplateColumns: "110px repeat(5, 1fr)" }}
         >
           <div />
           {DAYS.map((d) => (
@@ -52,7 +61,7 @@ export function ScheduleGrid({ subjects, combination }: Props) {
           ))}
           {slots.map((slot) => (
             <SlotRow
-              key={slot}
+              key={slot.index}
               slot={slot}
               blocks={allBlocks}
               violationDetails={violationDetails}
@@ -69,24 +78,27 @@ function SlotRow({
   blocks,
   violationDetails,
 }: {
-  slot: number;
+  slot: { index: number; start: number; end: number };
   blocks: Array<{ day: number; start: number; end: number; subj: Subject; sec: any }>;
   violationDetails: Map<string, string>;
 }) {
-  const slotEnd = slot + 45;
   return (
     <>
-      <div className="text-xs text-muted-foreground text-right pr-2 pt-1">{fromMinutes(slot)}</div>
+      <div className="text-xs text-muted-foreground text-right pr-2 pt-1 leading-tight">
+        <div className="font-medium">{`${fromMinutes(slot.start)}–${fromMinutes(slot.end)}`}</div>
+        <div className="text-[10px] opacity-70">{`Bloque ${slot.index}`}</div>
+      </div>
       {DAYS.map((d) => {
         const inBlock = blocks.find(
-          (b) => b.day === d && b.start < slotEnd && b.end > slot,
+          (b) => b.day === d && b.start < slot.end && b.end > slot.start,
         );
         if (!inBlock) {
           return <div key={d} className="min-h-12 border-t border-border/40" />;
         }
         // Only render label at the first slot of the block to avoid duplication
-        const isFirst = inBlock.start >= slot && inBlock.start < slotEnd;
+        const isFirst = inBlock.start < slot.end && inBlock.start >= slot.start;
         const violated = violationDetails.has(`${d}`);
+
         const cls = violated
           ? "bg-destructive/15 border-destructive/60 text-destructive-foreground"
           : "bg-primary/10 border-primary/60";
