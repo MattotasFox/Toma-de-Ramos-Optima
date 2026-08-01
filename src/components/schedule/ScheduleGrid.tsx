@@ -51,7 +51,7 @@ export function ScheduleGrid({ subjects, combination }: Props) {
       <div className="overflow-x-auto">
         <div
           className="grid gap-1 min-w-[720px]"
-          style={{ gridTemplateColumns: "80px repeat(5, 1fr)" }}
+          style={{ gridTemplateColumns: "110px repeat(5, 1fr)" }}
         >
           <div />
           {DAYS.map((d) => (
