@@ -6,6 +6,17 @@ type Props = {
   combination: Combination;
 };
 
+// Bloques oficiales de la universidad: 90 min de clase + 10 min de receso.
+const BLOCK_LENGTH = 90;
+const BLOCK_BREAK = 10;
+const FIRST_BLOCK_START = 8 * 60; // 08:00
+const TOTAL_BLOCKS = 8; // 08:00 → 21:10
+
+const UNIVERSITY_BLOCKS = Array.from({ length: TOTAL_BLOCKS }, (_, i) => {
+  const start = FIRST_BLOCK_START + i * (BLOCK_LENGTH + BLOCK_BREAK);
+  return { index: i + 1, start, end: start + BLOCK_LENGTH };
+});
+
 // Build the timeline range from all blocks in the combination.
 export function ScheduleGrid({ subjects, combination }: Props) {
   const picked = combination.choices.map((c) => {
@@ -21,10 +32,8 @@ export function ScheduleGrid({ subjects, combination }: Props) {
 
   const minStart = Math.min(...allBlocks.map((b) => b.start));
   const maxEnd = Math.max(...allBlocks.map((b) => b.end));
-  const rowStart = Math.floor(minStart / 45) * 45;
-  const rowEnd = Math.ceil(maxEnd / 45) * 45;
-  const slots: number[] = [];
-  for (let t = rowStart; t < rowEnd; t += 45) slots.push(t);
+  const slots = UNIVERSITY_BLOCKS.filter((s) => s.end > minStart && s.start < maxEnd);
+
 
   // Violation days: build set from violation detail hints
   const violationDetails = new Map<string, string>();
