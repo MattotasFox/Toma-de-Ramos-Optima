@@ -137,11 +137,8 @@ function SlotRow({
                   <div className="cursor-help">
                     <div className="font-semibold leading-tight">{inBlock.subj.name}</div>
                     <div className="text-[10px] opacity-80">
-                      {inBlock.sec.label} · {fromMinutes(inBlock.start)}–{fromMinutes(inBlock.end)}
+                      Sección {inBlock.sec.label}
                     </div>
-                    {inBlock.sec.professor && (
-                      <div className="text-[10px] opacity-70">{inBlock.sec.professor}</div>
-                    )}
                   </div>
                 </TooltipTrigger>
                 {violated && (
