@@ -61,7 +61,7 @@ export function ScheduleGrid({ subjects, combination }: Props) {
           ))}
           {slots.map((slot) => (
             <SlotRow
-              key={slot}
+              key={slot.index}
               slot={slot}
               blocks={allBlocks}
               violationDetails={violationDetails}
@@ -78,24 +78,27 @@ function SlotRow({
   blocks,
   violationDetails,
 }: {
-  slot: number;
+  slot: { index: number; start: number; end: number };
   blocks: Array<{ day: number; start: number; end: number; subj: Subject; sec: any }>;
   violationDetails: Map<string, string>;
 }) {
-  const slotEnd = slot + 45;
   return (
     <>
-      <div className="text-xs text-muted-foreground text-right pr-2 pt-1">{fromMinutes(slot)}</div>
+      <div className="text-xs text-muted-foreground text-right pr-2 pt-1 leading-tight">
+        <div className="font-medium">{`${fromMinutes(slot.start)}–${fromMinutes(slot.end)}`}</div>
+        <div className="text-[10px] opacity-70">{`Bloque ${slot.index}`}</div>
+      </div>
       {DAYS.map((d) => {
         const inBlock = blocks.find(
-          (b) => b.day === d && b.start < slotEnd && b.end > slot,
+          (b) => b.day === d && b.start < slot.end && b.end > slot.start,
         );
         if (!inBlock) {
           return <div key={d} className="min-h-12 border-t border-border/40" />;
         }
         // Only render label at the first slot of the block to avoid duplication
-        const isFirst = inBlock.start >= slot && inBlock.start < slotEnd;
+        const isFirst = inBlock.start < slot.end && inBlock.start >= slot.start;
         const violated = violationDetails.has(`${d}`);
+
         const cls = violated
           ? "bg-destructive/15 border-destructive/60 text-destructive-foreground"
           : "bg-primary/10 border-primary/60";
