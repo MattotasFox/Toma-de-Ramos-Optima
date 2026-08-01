@@ -34,15 +34,38 @@ export function ScheduleGrid({ subjects, combination }: Props) {
   const maxEnd = Math.max(...allBlocks.map((b) => b.end));
   const slots = UNIVERSITY_BLOCKS.filter((s) => s.end > minStart && s.start < maxEnd);
 
+  // Map each violation to the specific block(s) that break the rule.
+  const blockViolations = new Map<string, string[]>();
+  const keyOf = (b: { day: number; start: number; end: number }) =>
+    `${b.day}|${b.start}|${b.end}`;
+  const addMsg = (b: { day: number; start: number; end: number }, msg: string) => {
+    const k = keyOf(b);
+    const list = blockViolations.get(k) ?? [];
+    if (!list.includes(msg)) list.push(msg);
+    blockViolations.set(k, list);
+  };
 
-  // Violation days: build set from violation detail hints
-  const violationDetails = new Map<string, string>();
   for (const v of combination.violations) {
-    for (const day of DAYS) {
-      if (v.rule.includes(DAY_NAMES[day])) {
-        const existing = violationDetails.get(`${day}`) ?? "";
-        violationDetails.set(`${day}`, existing + (existing ? "\n" : "") + (v.detail ?? v.rule));
-      }
+    const day = DAYS.find((d) => v.rule.includes(DAY_NAMES[d]));
+    if (!day) continue;
+    const dayBlocks = allBlocks.filter((b) => b.day === day);
+    if (dayBlocks.length === 0) continue;
+    const times = [...v.rule.matchAll(/(\d{1,2}):(\d{2})/g)].map(
+      (m) => parseInt(m[1], 10) * 60 + parseInt(m[2], 10),
+    );
+    const msg = v.detail ?? v.rule;
+
+    if (/^Inicio/i.test(v.rule) && times.length >= 1) {
+      for (const b of dayBlocks) if (b.start < times[0]) addMsg(b, msg);
+    } else if (/^T[eé]rmino/i.test(v.rule) && times.length >= 1) {
+      for (const b of dayBlocks) if (b.end > times[0]) addMsg(b, msg);
+    } else if (/^Almuerzo/i.test(v.rule) && times.length >= 2) {
+      // times[0] is the duration's minutes value pattern-free; window = last two times
+      const wStart = times[times.length - 2];
+      const wEnd = times[times.length - 1];
+      for (const b of dayBlocks) if (b.start < wEnd && b.end > wStart) addMsg(b, msg);
+    } else {
+      for (const b of dayBlocks) addMsg(b, msg);
     }
   }
 
@@ -64,7 +87,7 @@ export function ScheduleGrid({ subjects, combination }: Props) {
               key={slot.index}
               slot={slot}
               blocks={allBlocks}
-              violationDetails={violationDetails}
+              blockViolations={blockViolations}
             />
           ))}
         </div>
@@ -76,11 +99,11 @@ export function ScheduleGrid({ subjects, combination }: Props) {
 function SlotRow({
   slot,
   blocks,
-  violationDetails,
+  blockViolations,
 }: {
   slot: { index: number; start: number; end: number };
   blocks: Array<{ day: number; start: number; end: number; subj: Subject; sec: any }>;
-  violationDetails: Map<string, string>;
+  blockViolations: Map<string, string[]>;
 }) {
   return (
     <>
@@ -97,7 +120,8 @@ function SlotRow({
         }
         // Only render label at the first slot of the block to avoid duplication
         const isFirst = inBlock.start < slot.end && inBlock.start >= slot.start;
-        const violated = violationDetails.has(`${d}`);
+        const messages = blockViolations.get(`${inBlock.day}|${inBlock.start}|${inBlock.end}`);
+        const violated = !!messages?.length;
 
         const cls = violated
           ? "bg-destructive/15 border-destructive/60 text-destructive-foreground"
@@ -123,7 +147,7 @@ function SlotRow({
                 {violated && (
                   <TooltipContent>
                     <div className="max-w-xs whitespace-pre-line text-xs">
-                      {violationDetails.get(`${d}`)}
+                      {messages!.join("\n")}
                     </div>
                   </TooltipContent>
                 )}
@@ -135,3 +159,4 @@ function SlotRow({
     </>
   );
 }
+
