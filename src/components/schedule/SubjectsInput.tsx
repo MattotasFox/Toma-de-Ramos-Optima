@@ -246,6 +246,7 @@ function SubjectCard({
           </div>
         )}
       </div>
+      )}
     </Card>
   );
 }
