@@ -333,8 +333,16 @@ const TYPE_WORDS = /(TEOR[ÍI]A|LABORATORIO|LABORATORIOS|LAB|AYUDANT[ÍI]A|PR[Á
 // Detects the university copy/paste format:
 // "INFB8080 - REDES Y COMUNICACION DE DATOS302TEORIANOMBRE PROFESOR" + líneas de horario
 function isUniversityFormat(text: string): boolean {
-  return !text.includes("|") && new RegExp(`(${DAY_WORDS})\\s*\\d{1,2}:\\d{2}`, "i").test(text);
+  if (text.includes("|")) return false;
+  if (new RegExp(`(${DAY_WORDS})\\s*\\d{1,2}:\\d{2}`, "i").test(text)) return true;
+  // Solo encabezados: "INF00001 - NOMBRE DE LA ASIGNATURA"
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .some((l) => /^([A-Za-zÁÉÍÓÚÑ]{2,}\d[\w-]*)\s*-\s*(.+)$/.test(l));
 }
+
 
 export function parseUniversityImport(text: string): Subject[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim());
