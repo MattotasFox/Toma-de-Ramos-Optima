@@ -396,7 +396,20 @@ export function parseUniversityImport(text: string): Subject[] {
         rawBlocks.push({ day, start: toMinutes(t[1]), end: toMinutes(t[2]) });
       }
     }
-    if (rawBlocks.length === 0) continue;
+    // Solo encabezado (sin horarios): crear la asignatura vacía.
+    if (rawBlocks.length === 0) {
+      const plainName = rest.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+      const emptyKey = `${plainName}::${code}`;
+      if (!subjectsMap.has(emptyKey)) {
+        subjectsMap.set(emptyKey, {
+          id: cryptoId(),
+          name: plainName || code,
+          code,
+          sections: [],
+        });
+      }
+      continue;
+    }
 
     const key = `${name}::${code}`;
     let subj = subjectsMap.get(key);
