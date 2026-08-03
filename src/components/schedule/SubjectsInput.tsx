@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, GraduationCap, Clock, Upload } from "lucide-react";
+import { Plus, Trash2, GraduationCap, Clock, Upload, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   type Subject,
@@ -140,33 +140,65 @@ function SubjectCard({
       sections: subject.sections.map((s) => (s.id === id ? { ...s, ...patch } : s)),
     });
 
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <Card className="p-4 space-y-3 border-l-4 border-l-primary">
       <div className="flex gap-2 items-end">
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
-          <div>
-            <Label className="text-xs">Asignatura</Label>
-            <Input
-              value={subject.name}
-              onChange={(e) => onUpdate({ name: e.target.value })}
-              placeholder="Ej: Cálculo"
-            />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed((v) => !v)}
+          aria-label={collapsed ? "Maximizar asignatura" : "Minimizar asignatura"}
+          title={collapsed ? "Maximizar" : "Minimizar"}
+          className="shrink-0"
+        >
+          {collapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
+        </Button>
+        {collapsed ? (
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="flex-1 min-w-0 text-left pb-2"
+          >
+            <div className="truncate font-medium text-sm">
+              {subject.name || "Sin nombre"}
+              {subject.code ? (
+                <span className="text-muted-foreground font-normal"> · {subject.code}</span>
+              ) : null}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {subject.sections.length} sección(es)
+            </div>
+          </button>
+        ) : (
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Asignatura</Label>
+              <Input
+                value={subject.name}
+                onChange={(e) => onUpdate({ name: e.target.value })}
+                placeholder="Ej: Cálculo"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Código (opcional)</Label>
+              <Input
+                value={subject.code ?? ""}
+                onChange={(e) => onUpdate({ code: e.target.value })}
+                placeholder="MAT101"
+              />
+            </div>
           </div>
-          <div>
-            <Label className="text-xs">Código (opcional)</Label>
-            <Input
-              value={subject.code ?? ""}
-              onChange={(e) => onUpdate({ code: e.target.value })}
-              placeholder="MAT101"
-            />
-          </div>
-        </div>
+        )}
         <Button variant="ghost" size="icon" onClick={onRemove} className="text-destructive">
           <Trash2 className="size-4" />
         </Button>
       </div>
 
+      {!collapsed && (
       <div className="space-y-2 pl-2 border-l-2 border-muted">
+
         {subject.sections.map((sec) => (
           <SectionEditor
             key={sec.id}
@@ -214,6 +246,7 @@ function SubjectCard({
           </div>
         )}
       </div>
+      )}
     </Card>
   );
 }
