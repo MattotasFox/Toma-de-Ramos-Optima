@@ -112,44 +112,47 @@ function SlotRow({
         <div className="text-[10px] opacity-70">{`Bloque ${slot.index}`}</div>
       </div>
       {DAYS.map((d) => {
-        const inBlock = blocks.find(
+        const inSlot = blocks.filter(
           (b) => b.day === d && b.start < slot.end && b.end > slot.start,
         );
-        if (!inBlock) {
+        if (inSlot.length === 0) {
           return <div key={d} className="min-h-12 border-t border-border/40" />;
         }
-        // Only render label at the first slot of the block to avoid duplication
-        const isFirst = inBlock.start < slot.end && inBlock.start >= slot.start;
-        const messages = blockViolations.get(`${inBlock.day}|${inBlock.start}|${inBlock.end}`);
-        const violated = !!messages?.length;
-
-        const cls = violated
-          ? "bg-destructive/15 border-destructive/60 text-destructive-foreground"
-          : "bg-primary/10 border-primary/60";
         return (
-          <div
-            key={d}
-            className={`min-h-12 border-t border-l-4 rounded-r-md px-2 py-1 text-xs ${cls}`}
-          >
-            {isFirst && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="cursor-help">
-                    <div className="font-semibold leading-tight">{inBlock.subj.name}</div>
-                    <div className="text-[10px] opacity-80">
-                      Sección {inBlock.sec.label}
-                    </div>
-                  </div>
-                </TooltipTrigger>
-                {violated && (
-                  <TooltipContent>
-                    <div className="max-w-xs whitespace-pre-line text-xs">
-                      {messages!.join("\n")}
-                    </div>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            )}
+          <div key={d} className="min-h-12 space-y-1">
+            {inSlot.map((inBlock, i) => {
+              const messages = blockViolations.get(
+                `${inBlock.day}|${inBlock.start}|${inBlock.end}`,
+              );
+              const violated = !!messages?.length;
+              const cls = violated
+                ? "bg-destructive/15 border-destructive/60 text-foreground"
+                : "bg-primary/10 border-primary/60";
+              return (
+                <div
+                  key={`${inBlock.subj.id}-${inBlock.sec.id}-${i}`}
+                  className={`min-h-12 border-t border-l-4 rounded-r-md px-2 py-1 text-xs ${cls}`}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-help">
+                        <div className="font-semibold leading-tight">{inBlock.subj.name}</div>
+                        <div className="text-[10px] opacity-80">
+                          Sección {inBlock.sec.label}
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    {violated && (
+                      <TooltipContent>
+                        <div className="max-w-xs whitespace-pre-line text-xs">
+                          {messages!.join("\n")}
+                        </div>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </div>
+              );
+            })}
           </div>
         );
       })}
