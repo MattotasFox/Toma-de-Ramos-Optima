@@ -348,7 +348,7 @@ function stripTrailingType(name: string): string {
 function cleanProfessor(raw: string): string {
   let out = clean(raw);
   for (;;) {
-    const next = clean(out.replace(new RegExp(`^${TYPE_WORDS.source}(?:\\s|$)`, "i"), ""));
+    const next = clean(out.replace(new RegExp(`^${TYPE_WORDS.source}`, "i"), ""));
     if (next === out) break;
     out = next;
   }
