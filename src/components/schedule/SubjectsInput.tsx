@@ -159,15 +159,13 @@ function SubjectCard({
       sections: subject.sections.map((s) => (s.id === id ? { ...s, ...patch } : s)),
     });
 
-  const [collapsed, setCollapsed] = useState(false);
-
   return (
     <Card className="p-4 space-y-3 border-l-4 border-l-primary">
       <div className="flex gap-2 items-end">
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCollapsed((v) => !v)}
+          onClick={onToggleCollapse}
           aria-label={collapsed ? "Maximizar asignatura" : "Minimizar asignatura"}
           title={collapsed ? "Maximizar" : "Minimizar"}
           className="shrink-0"
