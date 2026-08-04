@@ -328,7 +328,34 @@ export function parseDay(s: string): Day {
 }
 
 const DAY_WORDS = "lunes|martes|mi[eé]rcoles|jueves|viernes";
-const TYPE_WORDS = /(TEOR[ÍI]A|LABORATORIO|LABORATORIOS|LAB|AYUDANT[ÍI]A|PR[ÁA]CTICA|TALLER|C[ÁA]TEDRA)/gi;
+const TYPE_WORDS = /(TEOR[ÍI]A|LABORATORIOS|LABORATORIO|LAB|AYUDANT[ÍI]A|PR[ÁA]CTICA|TALLER|C[ÁA]TEDRA)/i;
+
+const clean = (s: string) => s.replace(/\s{2,}/g, " ").trim();
+
+// Quita la etiqueta de tipo (TEORIA, TALLER, ...) solo si aparece al final del
+// nombre; así "TALLER DE SISTEMAS DE INFORMACION" no pierde su primera palabra.
+function stripTrailingType(name: string): string {
+  let out = clean(name);
+  for (;;) {
+    const next = clean(out.replace(new RegExp(`(?:^|\\s)${TYPE_WORDS.source}\\s*$`, "i"), ""));
+    if (next === out || next === "") break;
+    out = next;
+  }
+  return out;
+}
+
+// Limpia el profesor: quita etiquetas de tipo al inicio y "sin profesor".
+function cleanProfessor(raw: string): string {
+  let out = clean(raw);
+  for (;;) {
+    const next = clean(out.replace(new RegExp(`^${TYPE_WORDS.source}(?:\\s|$)`, "i"), ""));
+    if (next === out) break;
+    out = next;
+  }
+  if (/^sin\s+profesor$/i.test(out) || /^(por\s+)?(definir|asignar)$/i.test(out)) return "";
+  return out;
+}
+
 
 // Detects the university copy/paste format:
 // "INFB8080 - REDES Y COMUNICACION DE DATOS302TEORIANOMBRE PROFESOR" + líneas de horario
