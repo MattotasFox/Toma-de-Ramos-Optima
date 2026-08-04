@@ -33,11 +33,24 @@ type Props = {
 
 export function SubjectsInput({ subjects, onChange }: Props) {
   const [importText, setImportText] = useState("");
+  // Persisted across tab switches (the Tabs component unmounts inactive content,
+  // so collapse state must live here, above the tabs, keyed by subject id).
+  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
+  const toggleCollapse = (id: string) =>
+    setCollapsedMap((m) => ({ ...m, [id]: !m[id] }));
 
   const addSubject = () => {
     onChange([...subjects, { id: cryptoId(), name: "Nueva asignatura", code: "", sections: [] }]);
   };
-  const removeSubject = (id: string) => onChange(subjects.filter((s) => s.id !== id));
+  const removeSubject = (id: string) => {
+    onChange(subjects.filter((s) => s.id !== id));
+    setCollapsedMap((m) => {
+      if (!(id in m)) return m;
+      const next = { ...m };
+      delete next[id];
+      return next;
+    });
+  };
   const updateSubject = (id: string, patch: Partial<Subject>) =>
     onChange(subjects.map((s) => (s.id === id ? { ...s, ...patch } : s)));
 
