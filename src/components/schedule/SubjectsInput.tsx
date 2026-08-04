@@ -175,7 +175,7 @@ function SubjectCard({
         {collapsed ? (
           <button
             type="button"
-            onClick={() => setCollapsed(false)}
+            onClick={onToggleCollapse}
             className="flex-1 min-w-0 text-left pb-2"
           >
             <div className="truncate font-medium text-sm">
