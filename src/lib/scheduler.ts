@@ -409,8 +409,8 @@ export function parseUniversityImport(text: string): Subject[] {
       professor = nm[3];
     }
     // strip "TEORIA" and similar type words
-    name = name.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
-    professor = professor.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+    name = stripTrailingType(name);
+    professor = cleanProfessor(professor);
 
     // schedule: day followed by one or more HH:MM - HH:MM separated by "/"
     const rawBlocks: Block[] = [];
