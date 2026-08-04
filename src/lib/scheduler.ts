@@ -446,7 +446,39 @@ export function parseUniversityImport(text: string): Subject[] {
   return Array.from(subjectsMap.values());
 }
 
+// Parsea un trozo de texto que representa UNA sección: "411TALLERsin profesormiercoles 9:40 - ..."
+function parseSectionChunk(text: string): Section | null {
+  const whole = text.trim();
+  if (!whole) return null;
+  const idx = whole.search(new RegExp(`(${DAY_WORDS})`, "i"));
+  if (idx < 0) return null;
+  const headPart = whole.slice(0, idx).replace(/\n/g, " ").trim();
+  const schedulePart = whole.slice(idx);
+
+  const hm = headPart.match(/^\D*?(\d{2,5})([\s\S]*)$/);
+  const label = hm ? hm[1] : "1";
+  const professor = cleanProfessor((hm ? hm[2] : headPart) ?? "");
+
+  const rawBlocks: Block[] = [];
+  const chunkRe = new RegExp(`(${DAY_WORDS})([^a-zA-ZÁÉÍÓÚÑáéíóú]*)`, "gi");
+  let m: RegExpExecArray | null;
+  while ((m = chunkRe.exec(schedulePart))) {
+    const day = parseDay(m[1]);
+    const times = m[2].matchAll(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/g);
+    for (const t of times) rawBlocks.push({ day, start: toMinutes(t[1]), end: toMinutes(t[2]) });
+  }
+  if (rawBlocks.length === 0) return null;
+
+  return {
+    id: cryptoId(),
+    label,
+    professor: professor || undefined,
+    blocks: normalizeBlocks(rawBlocks),
+  };
+}
+
 // Parses a single section pasted like:
+
 // "301TEORIACRISTIAN ANDRES RODRIGUEZ CORNEJOmartes 8:00 - 8:45 / 8:45 - 9:30 /"
 export function parseSectionImport(text: string): Section {
   const whole = text.trim();
