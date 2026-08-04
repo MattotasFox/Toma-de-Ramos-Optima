@@ -82,6 +82,8 @@ export function SubjectsInput({ subjects, onChange }: Props) {
           <SubjectCard
             key={subject.id}
             subject={subject}
+            collapsed={!!collapsedMap[subject.id]}
+            onToggleCollapse={() => toggleCollapse(subject.id)}
             onRemove={() => removeSubject(subject.id)}
             onUpdate={(patch) => updateSubject(subject.id, patch)}
           />
