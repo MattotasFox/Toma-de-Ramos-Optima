@@ -425,7 +425,7 @@ export function parseUniversityImport(text: string): Subject[] {
     }
     // Solo encabezado (sin horarios): crear la asignatura vacía.
     if (rawBlocks.length === 0) {
-      const plainName = rest.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+      const plainName = stripTrailingType(rest);
       const emptyKey = `${plainName}::${code}`;
       if (!subjectsMap.has(emptyKey)) {
         subjectsMap.set(emptyKey, {
