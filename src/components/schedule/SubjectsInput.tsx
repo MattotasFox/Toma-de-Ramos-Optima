@@ -118,10 +118,14 @@ export function SubjectsInput({ subjects, onChange }: Props) {
 
 function SubjectCard({
   subject,
+  collapsed,
+  onToggleCollapse,
   onRemove,
   onUpdate,
 }: {
   subject: Subject;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   onRemove: () => void;
   onUpdate: (patch: Partial<Subject>) => void;
 }) {
