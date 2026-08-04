@@ -387,53 +387,47 @@ export function parseUniversityImport(text: string): Subject[] {
   const subjectsMap = new Map<string, Subject>();
 
   for (const entry of entries) {
-    const whole = entry.join("\n");
-    const dayRe = new RegExp(`(${DAY_WORDS})`, "i");
-    const idx = whole.search(dayRe);
-    const headPart = (idx >= 0 ? whole.slice(0, idx) : whole).replace(/\n/g, " ").trim();
-    const schedulePart = idx >= 0 ? whole.slice(idx) : "";
-
-    const hm = headPart.match(headerRe);
+    const whole = entry.join("\n").replace(/\n/g, " ");
+    const hm = whole.match(/^([A-Za-zÁÉÍÓÚÑ]{2,}\d[\w-]*)\s*-\s*([\s\S]+)$/);
     if (!hm) continue;
     const code = hm[1].toUpperCase();
-    let rest = hm[2];
+    const rest = hm[2];
 
-    // name + section number + type + professor
-    const nm = rest.match(/^(.*?)(\d{2,5})(.*)$/);
-    let name = rest.trim();
-    let sectionLabel = "1";
-    let professor = "";
-    if (nm) {
-      name = nm[1].trim();
-      sectionLabel = nm[2];
-      professor = nm[3];
-    }
-    // strip "TEORIA" and similar type words
-    name = stripTrailingType(name);
-    professor = cleanProfessor(professor);
+    // Detecta el inicio de cada sección: número de sección seguido del tipo
+    // (TEORIA / TALLER / LAB...), pegado o separado por espacios.
+    const secStartRe = new RegExp(`\\d{2,5}\\s*(?:${TYPE_WORDS.source})`, "gi");
+    const starts: number[] = [];
+    let sm: RegExpExecArray | null;
+    while ((sm = secStartRe.exec(rest))) starts.push(sm.index);
 
-    // schedule: day followed by one or more HH:MM - HH:MM separated by "/"
-    const rawBlocks: Block[] = [];
-    const chunkRe = new RegExp(`(${DAY_WORDS})([^a-zA-ZÁÉÍÓÚÑáéíóú]*)`, "gi");
-    let m: RegExpExecArray | null;
-    while ((m = chunkRe.exec(schedulePart))) {
-      const day = parseDay(m[1]);
-      const times = m[2].matchAll(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/g);
-      for (const t of times) {
-        rawBlocks.push({ day, start: toMinutes(t[1]), end: toMinutes(t[2]) });
+    let name: string;
+    const chunks: string[] = [];
+    if (starts.length > 0) {
+      name = stripTrailingType(rest.slice(0, starts[0]));
+      for (let i = 0; i < starts.length; i++) {
+        chunks.push(rest.slice(starts[i], i + 1 < starts.length ? starts[i + 1] : undefined));
+      }
+    } else {
+      // Sin palabra de tipo: formato "NOMBRE 302 PROFESOR dia HH:MM - HH:MM"
+      const nm = rest.match(/^(.*?)(\d{2,5})([\s\S]*)$/);
+      if (nm && new RegExp(`(${DAY_WORDS})`, "i").test(nm[3])) {
+        name = stripTrailingType(nm[1]);
+        chunks.push(rest.slice(nm[1].length));
+      } else {
+        name = stripTrailingType(rest);
       }
     }
+
+    const parsed = chunks
+      .map((c) => parseSectionChunk(c))
+      .filter((s): s is Section => s !== null);
+
     // Solo encabezado (sin horarios): crear la asignatura vacía.
-    if (rawBlocks.length === 0) {
-      const plainName = stripTrailingType(rest);
+    if (parsed.length === 0) {
+      const plainName = name || stripTrailingType(rest);
       const emptyKey = `${plainName}::${code}`;
       if (!subjectsMap.has(emptyKey)) {
-        subjectsMap.set(emptyKey, {
-          id: cryptoId(),
-          name: plainName || code,
-          code,
-          sections: [],
-        });
+        subjectsMap.set(emptyKey, { id: cryptoId(), name: plainName || code, code, sections: [] });
       }
       continue;
     }
@@ -444,19 +438,47 @@ export function parseUniversityImport(text: string): Subject[] {
       subj = { id: cryptoId(), name: name || code, code, sections: [] };
       subjectsMap.set(key, subj);
     }
-    subj.sections.push({
-      id: cryptoId(),
-      label: sectionLabel,
-      professor: professor || undefined,
-      blocks: normalizeBlocks(rawBlocks),
-    });
+    subj.sections.push(...parsed);
   }
+
 
   if (subjectsMap.size === 0) throw new Error("No se pudieron leer secciones válidas del texto.");
   return Array.from(subjectsMap.values());
 }
 
+// Parsea un trozo de texto que representa UNA sección: "411TALLERsin profesormiercoles 9:40 - ..."
+function parseSectionChunk(text: string): Section | null {
+  const whole = text.trim();
+  if (!whole) return null;
+  const idx = whole.search(new RegExp(`(${DAY_WORDS})`, "i"));
+  if (idx < 0) return null;
+  const headPart = whole.slice(0, idx).replace(/\n/g, " ").trim();
+  const schedulePart = whole.slice(idx);
+
+  const hm = headPart.match(/^\D*?(\d{2,5})([\s\S]*)$/);
+  const label = hm ? hm[1] : "1";
+  const professor = cleanProfessor((hm ? hm[2] : headPart) ?? "");
+
+  const rawBlocks: Block[] = [];
+  const chunkRe = new RegExp(`(${DAY_WORDS})([^a-zA-ZÁÉÍÓÚÑáéíóú]*)`, "gi");
+  let m: RegExpExecArray | null;
+  while ((m = chunkRe.exec(schedulePart))) {
+    const day = parseDay(m[1]);
+    const times = m[2].matchAll(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/g);
+    for (const t of times) rawBlocks.push({ day, start: toMinutes(t[1]), end: toMinutes(t[2]) });
+  }
+  if (rawBlocks.length === 0) return null;
+
+  return {
+    id: cryptoId(),
+    label,
+    professor: professor || undefined,
+    blocks: normalizeBlocks(rawBlocks),
+  };
+}
+
 // Parses a single section pasted like:
+
 // "301TEORIACRISTIAN ANDRES RODRIGUEZ CORNEJOmartes 8:00 - 8:45 / 8:45 - 9:30 /"
 export function parseSectionImport(text: string): Section {
   const whole = text.trim();
