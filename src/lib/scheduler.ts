@@ -328,7 +328,34 @@ export function parseDay(s: string): Day {
 }
 
 const DAY_WORDS = "lunes|martes|mi[eé]rcoles|jueves|viernes";
-const TYPE_WORDS = /(TEOR[ÍI]A|LABORATORIO|LABORATORIOS|LAB|AYUDANT[ÍI]A|PR[ÁA]CTICA|TALLER|C[ÁA]TEDRA)/gi;
+const TYPE_WORDS = /(TEOR[ÍI]A|LABORATORIOS|LABORATORIO|LAB|AYUDANT[ÍI]A|PR[ÁA]CTICA|TALLER|C[ÁA]TEDRA)/i;
+
+const clean = (s: string) => s.replace(/\s{2,}/g, " ").trim();
+
+// Quita la etiqueta de tipo (TEORIA, TALLER, ...) solo si aparece al final del
+// nombre; así "TALLER DE SISTEMAS DE INFORMACION" no pierde su primera palabra.
+function stripTrailingType(name: string): string {
+  let out = clean(name);
+  for (;;) {
+    const next = clean(out.replace(new RegExp(`(?:^|\\s)${TYPE_WORDS.source}\\s*$`, "i"), ""));
+    if (next === out || next === "") break;
+    out = next;
+  }
+  return out;
+}
+
+// Limpia el profesor: quita etiquetas de tipo al inicio y "sin profesor".
+function cleanProfessor(raw: string): string {
+  let out = clean(raw);
+  for (;;) {
+    const next = clean(out.replace(new RegExp(`^${TYPE_WORDS.source}`, "i"), ""));
+    if (next === out) break;
+    out = next;
+  }
+  if (/^sin\s+profesor$/i.test(out) || /^(por\s+)?(definir|asignar)$/i.test(out)) return "";
+  return out;
+}
+
 
 // Detects the university copy/paste format:
 // "INFB8080 - REDES Y COMUNICACION DE DATOS302TEORIANOMBRE PROFESOR" + líneas de horario
@@ -382,8 +409,8 @@ export function parseUniversityImport(text: string): Subject[] {
       professor = nm[3];
     }
     // strip "TEORIA" and similar type words
-    name = name.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
-    professor = professor.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+    name = stripTrailingType(name);
+    professor = cleanProfessor(professor);
 
     // schedule: day followed by one or more HH:MM - HH:MM separated by "/"
     const rawBlocks: Block[] = [];
@@ -398,7 +425,7 @@ export function parseUniversityImport(text: string): Subject[] {
     }
     // Solo encabezado (sin horarios): crear la asignatura vacía.
     if (rawBlocks.length === 0) {
-      const plainName = rest.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+      const plainName = stripTrailingType(rest);
       const emptyKey = `${plainName}::${code}`;
       if (!subjectsMap.has(emptyKey)) {
         subjectsMap.set(emptyKey, {
@@ -443,7 +470,7 @@ export function parseSectionImport(text: string): Section {
   const hm = headPart.match(/^\D*?(\d{2,5})(.*)$/s);
   const label = hm ? hm[1] : "1";
   let professor = (hm ? hm[2] : headPart) ?? "";
-  professor = professor.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+  professor = cleanProfessor(professor);
 
   const rawBlocks: Block[] = [];
   const chunkRe = new RegExp(`(${DAY_WORDS})([^a-zA-ZÁÉÍÓÚÑáéíóú]*)`, "gi");
