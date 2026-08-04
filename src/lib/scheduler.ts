@@ -470,7 +470,7 @@ export function parseSectionImport(text: string): Section {
   const hm = headPart.match(/^\D*?(\d{2,5})(.*)$/s);
   const label = hm ? hm[1] : "1";
   let professor = (hm ? hm[2] : headPart) ?? "";
-  professor = professor.replace(TYPE_WORDS, "").replace(/\s{2,}/g, " ").trim();
+  professor = cleanProfessor(professor);
 
   const rawBlocks: Block[] = [];
   const chunkRe = new RegExp(`(${DAY_WORDS})([^a-zA-ZÁÉÍÓÚÑáéíóú]*)`, "gi");
